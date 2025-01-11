@@ -18,7 +18,7 @@ public class WordCountLocal {
         System.setProperty("HADOOP_USER_NAME", "root");
         Configuration conf = new Configuration();
         conf.set("mapreduce.framework.name", "local");
-        conf.set("hadoop.tmp.dir", "/Users/lijingtang/Downloads/wc");
+        conf.set("hadoop.tmp.dir", "/Users/lijingtang/Downloads/java/hadoop/wc");
 
         Job job = Job.getInstance(conf, "wc-local-job");
         job.setJarByClass(WordCountLocal.class);

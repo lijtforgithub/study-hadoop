@@ -17,7 +17,7 @@ public class AirTopLocal {
         System.setProperty("HADOOP_USER_NAME", "root");
         Configuration conf = new Configuration();
         conf.set("mapreduce.framework.name", "local");
-        conf.set("hadoop.tmp.dir", "/Users/lijingtang/Downloads/top");
+        conf.set("hadoop.tmp.dir", "/Users/lijingtang/Downloads/java/hadoop/top");
         Job job = Job.getInstance(conf);
 
         job.setJobName("air-top-local");

@@ -7,7 +7,6 @@ import org.apache.hadoop.io.IOUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 
 import java.net.URI;
@@ -17,7 +16,6 @@ import java.net.URI;
  * @date 2024-12-03 09:20
  */
 @Slf4j
-@SpringBootTest
 public class HdfsTest {
 
     private static FileSystem fs;

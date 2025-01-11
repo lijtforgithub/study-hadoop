@@ -18,7 +18,7 @@ public class FofLocal {
         System.setProperty("HADOOP_USER_NAME", "root");
         Configuration conf = new Configuration();
         conf.set("mapreduce.framework.name", "local");
-        conf.set("hadoop.tmp.dir", "/Users/lijingtang/Downloads/fof");
+        conf.set("hadoop.tmp.dir", "/Users/lijingtang/Downloads/java/hadoop/fof");
         Job job = Job.getInstance(conf);
 
         job.setJobName("fof-local");

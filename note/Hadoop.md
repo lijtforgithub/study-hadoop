@@ -1,3 +1,5 @@
+
+
 ## HDFS
 
 ### 开放端口号
@@ -242,7 +244,7 @@ sbin/yarn-daemon.sh stop resourcemanager
         <name>yarn.resourcemanager.hostname.rm2</name>
         <value>node02</value>
       </property>
-      <!--HA模式不配置执行mr的jar会报错-->
+      <!--HA模式不配置下面执行mr的jar会报错-->
       <property>
         <name>yarn.resourcemanager.webapp.address.rm1</name>
         <value>node01:8088</value>
@@ -253,11 +255,210 @@ sbin/yarn-daemon.sh stop resourcemanager
       </property>
   ```
 
+
+## Hive
+
+数据仓库
+
+- 内部表和外部表
+  		hive内部表创建的时候数据存储在hive的默认存储目录中，外部表在创建的时候需要制定额外的目录。
+    		hive内部表删除的时候，会将元数据和数据都删除，而外部表只会删除元数据，不会删除数据。
+  应用场景:
+  		内部表：需要先创建表，然后向表中添加数据，适合做中间表的存储。
+  		外部表：可以先创建表，再添加数据，也可以先有数据，再创建表，本质上是将hdfs的某一个目录的数据跟hive的表关联映射起来，因此适合原始数据的存储，不会因为误操作将数据给删除掉。
+
+- 分区
+  		hive默认将表的数据保存在某一个hdfs的存储目录下，当需要检索符合条件的某一部分数据的时候，需要全量遍历数据，IO量比较大，效率比较低，因此可以采用分而治之的思想，将符合某些条件的数据放置在某一个目录		此时检索的时候只需要搜索指定目录即可，不需要全量遍历数据。
+
+   		添加分区列的值的时候，如果定义的是多分区表，那么必须给所有的分区列都赋值；删除分区列的值的时候，无论是单分区表还是多分区表，都可以将指定的分区进行删除。
+
+- 动态分区
+- 分桶：分桶是根据字段值取hash；分区是根据字段值。 MySQL分表中有根据年份分表或者根据用户ID取hash分表。
+
+### MySQL
+
+```shell
+# 更换阿里云镜像
+cp /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+
+# 下载 MySQL Yum 仓库配置文件
+wget https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+# 安装 MySQL Yum 仓库配置文件
+rpm -ivh mysql80-community-release-el7-3.noarch.rpm
+# 安装 MySQL 5.7 （yum install mysql-community-server）
+yum-config-manager --disable mysql80-community
+yum-config-manager --enable mysql57-community
+# 更新缓存 yum-config-manager --save --setopt=mysql57-community.gpgcheck=0
+yum clean all
+yum makecache
+
+yum install mysql-community-server
+systemctl start mysqld
+
+# 查找默认密码
+cat /var/log/mysqld.log | grep 'temporary password'
+
+mysql
+use mysql
+select host,user from user;
+# UNINSTALL PLUGIN validate_password; 卸载密码校验插件
+grant all privileges on *.* to root@'%' identified by 'admin' with grant option;
+flush privileges;
+delete from user where host = 'localhost';
+# 开机启动
+systemctl enable mysqld.service
+```
+
+### 直连MySQL
+
+- mv hive-default.xml.template hive-site.xml
+
+- 末行模式 
+
+  ```shell
+   :.,$-1d
+  :!echo $JAVA_HOME
+  ```
+
+```xml
+    <property>
+      <name>hive.metastore.warehouse.dir</name>
+      <value>/user/hive/warehouse</value>
+    </property>
+    <property>
+      <name>javax.jdo.option.ConnectionURL</name>
+      <value>jdbc:mysql://node02:3306/hive?createDatabaseIfNotExist=true</value>
+    </property>
+		<!--上传mysql驱动包-->
+    <property>
+      <name>javax.jdo.option.ConnectionDriverName</name>
+      <value>com.mysql.jdbc.Driver</value>
+    </property>
+    <property>
+      <name>javax.jdo.option.ConnectionUserName</name>
+      <value>root</value>
+    </property>
+    <property>
+      <name>javax.jdo.option.ConnectionPassword</name>
+      <value>admin</value>
+    </property>
+
+		<property>
+  			<name>hive.exec.scratchdir</name>
+  			<value>/root/java/hive/tmp/exec</value>
+		</property>
+```
+
+```shell
+bin/schematool -dbType mysql -initSchema
+
+bin/hive
+
+bin/hiveserver2
+```
+
+
+
+```hive
+create database test_hive;
+use test_hive;
+
+create table p (id int, name string, likes array<string>, address map<string, string>)
+row format delimited fields terminated by ',' collection items terminated by '-' map keys terminated by ':';
+	
+desc p;
+desc formatted p;
+	
+insert into p(id, name) values(1, "SQL插入");
+-- array类型、map类型
+insert into p(id, name, likes, address) select 2, "SQL插入", array("movie", "book"), map("阜阳", "口孜", "合肥", "航空新城");
+
+create table p1 (id int, name string);
+-- overwrite会先清空原来的数据
+insert overwrite table p1 SELECT id, name FROM p;
+
+create table p2 (id int, name string);
+create table p3 (id int);
+
+from p
+insert overwrite table p2 select id, name 
+insert into table p3 select id;
+
+
+-- 加载本地数据到hive表
+load data local inpath "/root/java/hive/hive-data-p.txt" into table p;
+-- 加载hdfs数据文件到hive表
+load data inpath '/data/hive-data-p.txt' into table p;
+
+hive -S -e 'show tables'
+```
+
+### HiveServer2
+
+- 修改hdfs的core-site.xml
+
+  ```xml
+  		<!--hiveServer2-->
+      <property>
+        <name>hadoop.proxyuser.root.groups</name>
+        <value>*</value>
+      </property>
+      <property>
+        <name>hadoop.proxyuser.root.hosts</name>
+        <value>*</value>
+      </property>
+  ```
+
+- 刷新权限
+
+  ```shell
+  hdfs dfsadmin -fs hdfs://node01:8020 -refreshSuperUserGroupsConfiguration
   
+  beeline
+  !connect jdbc:hive2://node01:10000/test_hive root 123
+  ```
+
+- beeline
+
+  1. beeline -u jdbc:hive2://node01:10000/test_hive -n root
+
+  2. beeline
+     		beeline> !connect jdbc:hive2://node01:10000/test_hive root 123
+
+​		使用beeline方式登录的时候，默认的用户名和密码是不验证的，也就是说随便写用户名和密码即可。使用第一种beeline的方式访问的时候，用户名和密码可以不输入；使用第二种beeline方式访问的时候，必须输入用户名和密码，用户名和密码是什么无所谓。
+
+### WordCount
+
+```hive
+-- 先上传文件到hdfs
+use test_hive;
+create external table wc(line string) location '/data/wc/input';
+select * from wc;
+
+select explode(split(line, ' ')) from wc;
+
+create table wc_result(word string, count int);
+from (select explode(split(line, ' ')) word from wc) t insert into wc_result select word, count(word) group by t.word;
+```
 
 
 
 ## Hbase
+
+### 开放端口号
+
+#### node01
+
+- 16000
+
+- 16010
+- 16020
+
+#### node02
+
+- 16010
+- 16020
 
 ### 单机模式
 
@@ -288,14 +489,46 @@ sbin/yarn-daemon.sh stop resourcemanager
 
   ```shell
   export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_361.jdk/Contents/Home
+  export HBASE_MANAGES_ZK=false
+  ```
   
-  # 不要启用 Kerberos 认证
-  export HBASE_SECURITY_AUTHENTICATION=none
-  # 不要启用 SASL 认证
-  export HBASE_RPC_PROTECTION=none
+  
+  
+- conf/hbase-site.xml
+
+  ```xml
+  <configuration>  
+      <property>
+          <name>hbase.cluster.distributed</name>
+          <value>false</value>
+      </property>
+      <property>
+          <name>hbase.rootdir</name>
+          <value>hdfs://node01:8020/hbase</value>
+      </property>
+  </configuration>
   ```
 
+  ```shell
+  # 先开启mac的ssh （设置->共享->远程登录）
   
+  bin/start-hbase.sh
+  bin/stop-hbase.sh
+  
+  bin/hbase shell
+  bin/hbase hfile -p -f ../tmp/hbase/data/default/p1/532ddddb8906e0d9e9601ec3ba215a50/cf1/b14fec216a5541f790ed50b14da32d95
+  ```
+  
+  
+
+### 完全分布式
+
+- conf/hbase-env.sh
+
+  ```shell
+  export JAVA_HOME=/root/java/jdk/jdk1.8.0_431
+  export HBASE_MANAGES_ZK=false
+  ```
 
 - conf/hbase-site.xml
 
@@ -307,16 +540,31 @@ sbin/yarn-daemon.sh stop resourcemanager
       </property>
       <property>
           <name>hbase.rootdir</name>
-          <value>hdfs://47.122.0.148:8020/hbase</value>
+          <value>hdfs://node01:8020/hbase</value>
       </property>
+    	<property>
+      		<name>hbase.zookeeper.quorum</name>
+      		<value>node02</value>
+    	</property>
   </configuration>
   ```
 
-  ```shell
-  # 先开启mac的ssh （设置->共享->远程登录）
-  
-  bin/start-hbase.sh
-  bin/stop-hbase.sh
+- conf/regionservers
+
+  ```
+  node01
+  node02
   ```
 
-  
+- conf/backup-masters
+
+  ```
+  node02
+  ```
+
+- copy of *hdfs-site.xml* (or *hadoop-site.xml*) or, better, symlinks, under *${HBASE_HOME}/conf*
+
+  ```shell
+   cp /root/java/hadoop/hadoop-full/etc/hadoop/hdfs-site.xml ./
+  ```
+

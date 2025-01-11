@@ -1,0 +1,17 @@
+<configuration>
+
+    <property name="log_pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5p [%thread] %c{36} - %msg%n" />
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${log_pattern}</pattern>
+            <!-- 在日志的顶部插入日志输出的模式 -->
+            <outputPatternAsHeader>true</outputPatternAsHeader>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="stdout" />
+    </root>
+
+</configuration>
