@@ -1,6 +1,8 @@
 
 
-## HDFS
+## HDFS（分布式文件系统）
+
+<img src="./img/hdfs.png" alt="hdfs" style="zoom:67%;" />
 
 ### 开放端口号
 
@@ -163,7 +165,9 @@ for i in `seq 100000`; do echo "hello hadoop $i" >> hadoop-data-wc.txt; done
 
 解决NameNode单个内存上限问题
 
-## Yarn
+## Yarn（资源调度）
+
+<img src="./img/yarn.png" alt="yarn" style="zoom:67%;" />
 
 ### 开放端口号
 
@@ -255,10 +259,13 @@ sbin/yarn-daemon.sh stop resourcemanager
       </property>
   ```
 
+## MapReduce（分布式计算框架）
 
-## Hive
+<img src="./img/mapreduce1.png" alt="mp1" style="zoom: 50%;" />
 
-数据仓库
+<img src="./img/mapreduce2.png" alt="mp1" style="zoom: 50%;" />
+
+## Hive（数据仓库）
 
 - 内部表和外部表
   		hive内部表创建的时候数据存储在hive的默认存储目录中，外部表在创建的时候需要制定额外的目录。
@@ -444,7 +451,9 @@ from (select explode(split(line, ' ')) word from wc) t insert into wc_result sel
 
 
 
-## Hbase
+## Hbase（基于HDFS的数据库）
+
+<img src="./img/hbase.png" alt="hbase" />
 
 ### 开放端口号
 

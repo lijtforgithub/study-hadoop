@@ -82,11 +82,15 @@ public class HbaseTest {
     public static void getData(String tableName, String rowKey) throws IOException {
         Table table = connection.getTable(TableName.valueOf(tableName));
         Get get = new Get(Bytes.toBytes(rowKey));
+        // 服务端过滤字段 缩小IO
+//        get.addFamily()
+//        get.addColumn()
         Result result = table.get(get);
         for (Cell cell : result.rawCells()) {
             System.out.println("Row Key: " + Bytes.toString(result.getRow()));
             System.out.println("Column Family: " + Bytes.toString(cell.getFamilyArray(), cell.getFamilyOffset(), cell.getFamilyLength()));
             System.out.println("Column Qualifier: " + Bytes.toString(cell.getQualifierArray(), cell.getQualifierOffset(), cell.getQualifierLength()));
+//            byte[] bytes = CellUtil.cloneValue(cell);
             System.out.println("Value: " + Bytes.toString(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength()));
         }
         table.close();
